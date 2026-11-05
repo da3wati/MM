@@ -1249,12 +1249,9 @@ footer strong{
 <audio
     id="music"
     loop
-    preload="auto">
-
-    <source
-        src="music.mp3"
-        type="audio/mpeg">
-
+    preload="metadata"
+    playsinline>
+    <source src="./music.mp3" type="audio/mpeg">
 </audio>
 
 
@@ -1716,10 +1713,10 @@ function openInvitation(){
 
     musicButton.style.display = "block";
 
-    music.volume = .25;
+    music.volume = 0.35;
 
-    /* تشغيل الموسيقى مباشرة لأن الضغط هو تفاعل المستخدم */
-    music.play().catch(()=>{});
+    /* محاولة التشغيل مباشرة من ضغطة فتح الدعوة */
+    startMusic();
 
     /* تشغيل فيديو الخلفية بعد ضغط المستخدم لضمان عمله على iPhone/Safari */
     const backgroundVideo = document.getElementById("backgroundVideo");
@@ -1752,36 +1749,38 @@ function openInvitation(){
    MUSIC
 ========================================================= */
 
-let musicPlaying = false;
+function updateMusicButton(playing){
+    musicButton.textContent = playing ? "◼" : "♫";
+    musicButton.setAttribute("aria-label", playing ? "إيقاف الموسيقى" : "تشغيل الموسيقى");
+}
 
-musicButton.addEventListener(
-    "click",
-    async()=>{
-
-        if(musicPlaying){
-
-            music.pause();
-
-            musicPlaying = false;
-
-            musicButton.textContent = "♫";
-
-        }else{
-
-            try{
-
-                await music.play();
-
-                musicPlaying = true;
-
-                musicButton.textContent = "◼";
-
-            }catch(e){}
-
-        }
-
+async function startMusic(){
+    try{
+        music.volume = 0.35;
+        await music.play();
+        updateMusicButton(true);
+    }catch(error){
+        updateMusicButton(false);
+        console.warn("تعذر تشغيل music.mp3:", error);
+        musicButton.title = "تعذر تشغيل الموسيقى. تحقق من وجود ملف music.mp3 بجانب index.html";
     }
-);
+}
+
+music.addEventListener("playing", ()=>updateMusicButton(true));
+music.addEventListener("pause", ()=>updateMusicButton(false));
+music.addEventListener("error", ()=>{
+    updateMusicButton(false);
+    console.error("خطأ في تحميل ملف الموسيقى:", music.currentSrc, music.error);
+    musicButton.title = "ملف music.mp3 غير موجود أو لا يمكن قراءته";
+});
+
+musicButton.addEventListener("click", ()=>{
+    if(music.paused){
+        startMusic();
+    }else{
+        music.pause();
+    }
+});
 
 
 /* =========================================================
